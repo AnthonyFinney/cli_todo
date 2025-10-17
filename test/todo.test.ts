@@ -1,8 +1,7 @@
-import { describe, expect, test, beforeAll } from "bun:test";
+import { describe, expect, test, beforeAll, beforeEach } from "bun:test";
 import os from "node:os";
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
-import type { BunFile } from "bun";
 import type { Todo } from "../type";
 
 describe("todo", () => {
@@ -17,13 +16,17 @@ describe("todo", () => {
         await Bun.write(filePath, JSON.stringify(data, null, 2));
     });
 
+    beforeEach(async () => {
+        await Bun.write(filePath, JSON.stringify(data, null, 2));
+    });
+
     test("check for the file", async () => {
         const file: boolean = await Bun.file(filePath).exists();
         expect(file).toBe(true);
     });
 
     test("read all item from the file", async () => {
-        const file: BunFile = Bun.file(filePath);
+        const file = Bun.file(filePath);
         const parsed = await file.json();
         expect(Array.isArray(parsed)).toBe(true);
         expect(parsed).toEqual(data);
