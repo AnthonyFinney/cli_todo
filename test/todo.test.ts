@@ -7,7 +7,7 @@ import Todo from "../lib/Tobo";
 describe("todo", () => {
     let dir: string;
     let todo: Todo;
-    const data: TodoItem = { id: "1", task: "H1", done: false };
+    const data: TodoItem = { id: "1", task: "H1" };
 
     beforeAll(async () => {
         dir = path.join(os.homedir(), "todo");
@@ -35,19 +35,18 @@ describe("todo", () => {
         expect(item).toEqual({
             id: "1",
             task: "H1",
-            done: false,
         });
     });
 
     test("write item from the file", async () => {
-        const newItem: TodoItem = { id: "2", task: "A2", done: true };
+        const newItem: TodoItem = { id: "2", task: "A2" };
         await todo.write(newItem);
         const data = await todo.getAllTodo();
         expect(data).toContainEqual(newItem);
     });
 
     test("remove by id item from the file", async () => {
-        const newItem: TodoItem = { id: "2", task: "A2", done: true };
+        const newItem: TodoItem = { id: "2", task: "A2" };
         await todo.write(newItem);
         const dataBef = await todo.getAllTodo();
         expect(dataBef).toContainEqual(newItem);
