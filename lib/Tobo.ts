@@ -18,6 +18,10 @@ class Todo {
         await Bun.write(this.filePath, JSON.stringify(updatedData, null, 2));
     };
 
+    public removeAll = async (): Promise<void> => {
+        await Bun.write(this.filePath, "[]");
+    };
+
     public write = async (todo: TodoItem): Promise<void> => {
         await this.readyStore;
         const data = (await Bun.file(this.filePath).json()) as TodoItem[];
@@ -25,21 +29,21 @@ class Todo {
         await Bun.write(this.filePath, JSON.stringify(updatedData, null, 2));
     };
 
-    public readAll = async (): Promise<TodoItem[]> => {
+    public getAllTodo = async (): Promise<TodoItem[]> => {
         await this.readyStore;
         if (!(await this.checkfile())) return [];
         const parsed = (await Bun.file(this.filePath).json()) as TodoItem[];
         return parsed;
     };
 
-    public readById = async (id: string): Promise<TodoItem> => {
+    public getTodoById = async (id: string): Promise<TodoItem | undefined> => {
         await this.readyStore;
         const parsed = (await Bun.file(this.filePath).json()) as TodoItem[];
         const item = parsed.find((t) => t.id === id) as TodoItem;
         return item;
     };
 
-    private checkfile = async (): Promise<boolean> => {
+    public checkfile = async (): Promise<boolean> => {
         const file = Bun.file(this.filePath);
         if (!(await file.exists())) return false;
         return true;

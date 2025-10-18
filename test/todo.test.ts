@@ -1,40 +1,37 @@
 import { describe, expect, test, beforeAll, beforeEach } from "bun:test";
 import os from "node:os";
 import path from "node:path";
-import { mkdir } from "node:fs/promises";
 import type { TodoItem } from "../type";
+import Todo from "../lib/Tobo";
 
 describe("todo", () => {
     let dir: string;
-    let filePath: string;
-    const data: TodoItem[] = [{ id: "1", task: "H1", done: false }];
+    let todo: Todo;
+    const data: TodoItem = { id: "1", task: "H1", done: false };
 
     beforeAll(async () => {
         dir = path.join(os.homedir(), "todo");
-        await mkdir(dir, { recursive: true });
-        filePath = path.join(dir, "todo.json");
-        await Bun.write(filePath, JSON.stringify(data, null, 2));
+        todo = new Todo(dir);
     });
 
     beforeEach(async () => {
-        await Bun.write(filePath, JSON.stringify(data, null, 2));
+        await todo.removeAll();
+        await todo.write(data);
     });
 
     test("check for the file", async () => {
-        const file: boolean = await Bun.file(filePath).exists();
+        const file: boolean = await todo.checkfile();
         expect(file).toBe(true);
     });
 
     test("read all item from the file", async () => {
-        const file = Bun.file(filePath);
-        const parsed = await file.json();
+        const parsed = await todo.getAllTodo();
         expect(Array.isArray(parsed)).toBe(true);
-        expect(parsed).toEqual(data);
+        expect(parsed).toContainEqual(data);
     });
 
     test("read by id item from the file", async () => {
-        const parsed = (await Bun.file(filePath).json()) as TodoItem[];
-        const item = parsed.find((t) => t.id === data[0]?.id);
+        const item = await todo.getTodoById(data.id);
         expect(item).toEqual({
             id: "1",
             task: "H1",
@@ -43,27 +40,20 @@ describe("todo", () => {
     });
 
     test("write item from the file", async () => {
-        const dataBef = (await Bun.file(filePath).json()) as TodoItem[];
         const newItem: TodoItem = { id: "2", task: "A2", done: true };
-
-        const updatedData = [...dataBef, newItem];
-
-        await Bun.write(filePath, JSON.stringify(updatedData, null, 2));
-
-        const dataAft = (await Bun.file(filePath).json()) as TodoItem[];
-
-        expect(dataAft).toContainEqual(newItem);
+        await todo.write(newItem);
+        const data = await todo.getAllTodo();
+        expect(data).toContainEqual(newItem);
     });
 
     test("remove by id item from the file", async () => {
-        const dataBef = (await Bun.file(filePath).json()) as TodoItem[];
-        const item = data[0] as TodoItem;
-        const updatedData = dataBef.filter((t) => t.id !== item.id);
+        const newItem: TodoItem = { id: "2", task: "A2", done: true };
+        await todo.write(newItem);
+        const dataBef = await todo.getAllTodo();
+        expect(dataBef).toContainEqual(newItem);
 
-        await Bun.write(filePath, JSON.stringify(updatedData, null, 2));
-
-        const dataAft = (await Bun.file(filePath).json()) as TodoItem[];
-
-        expect(dataAft).not.toContainEqual(item);
+        await todo.removeById(newItem.id);
+        const dataAft = await todo.getAllTodo();
+        expect(dataAft).not.toContainEqual(newItem);
     });
 });
