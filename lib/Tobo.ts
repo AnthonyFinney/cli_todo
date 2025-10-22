@@ -11,11 +11,20 @@ class Todo {
         this.readyStore = this.store(dir);
     }
 
-    public removeById = async (id: string): Promise<void> => {
+    public removeById = async (id: string): Promise<boolean> => {
         await this.readyStore;
         const data = (await Bun.file(this.filePath).json()) as TodoItem[];
-        const updatedData = data.filter((t) => t.id !== id);
-        await Bun.write(this.filePath, JSON.stringify(updatedData, null, 2));
+
+        if (data.find((t) => t.id === id)) {
+            const updatedData = data.filter((t) => t.id !== id);
+            await Bun.write(
+                this.filePath,
+                JSON.stringify(updatedData, null, 2)
+            );
+            return true;
+        } else {
+            return false;
+        }
     };
 
     public removeAll = async (): Promise<void> => {

@@ -16,10 +16,8 @@ const main = async (): Promise<void> => {
         const action = await select({
             message: "Pick one to do -",
             options: [
-                { value: "list", label: "List all todo" },
+                { value: "list", label: "List all todo for show and remove" },
                 { value: "add", label: "Add new todo" },
-                { value: "show", label: "Show todo by id" },
-                { value: "remove", label: "remove todo by id" },
                 { value: "quit", label: "quit" },
             ],
         });
@@ -30,13 +28,48 @@ const main = async (): Promise<void> => {
             const s = spinner();
             s.start("Reading file");
             const items: TodoItem[] = await todo.getAllTodo();
-            s.stop("Done");
-            if (!items.length) {
-                console.log("Empty");
+            if (items.length) {
+                s.stop("Getting...");
             } else {
-                items.forEach((t, i) => {
-                    console.log(`id: ${t.id}, task: ${t.task}`);
-                });
+                s.stop("Empty");
+                continue;
+            }
+
+            const picked = await select({
+                message: `Todos ${items.length} - pick one`,
+                options: [
+                    ...items.map((t) => ({
+                        value: t.id,
+                        label: `id: ${t.id}, task: ${t.task}`,
+                    })),
+                    { value: "back", label: "Back" },
+                ],
+            });
+
+            if (isCancel(picked) || picked === "back") continue;
+
+            const item = items.find((t) => t.id === picked);
+            if (!item) continue;
+
+            const next = await select({
+                message: `Selected - id: ${item.id}, task: ${item.task}`,
+                options: [
+                    { value: "remove", label: "Remove" },
+                    { value: "back", label: "Back" },
+                ],
+            });
+
+            if (isCancel(next) || next === "back") continue;
+
+            if (next === "remove") {
+                const s2 = spinner();
+                s2.start("Removing...");
+                const res = await todo.removeById(item.id);
+                if (res) {
+                    s2.stop("Done");
+                } else {
+                    s2.stop("Id not found");
+                }
             }
         }
 
@@ -55,40 +88,8 @@ const main = async (): Promise<void> => {
             };
 
             const s = spinner();
-            s.start("Saving");
+            s.start("Saving...");
             await todo.write(todoItem);
-            s.stop("Done");
-        }
-
-        if (action === "show") {
-            const id = await text({
-                message: "Enter ID:",
-                validate: (v) => (v.trim() ? undefined : "Id is needed!"),
-            });
-            if (isCancel(id)) return;
-
-            const s = spinner();
-            s.start("Getting");
-            const item = await todo.getTodoById(id);
-            s.stop("Done");
-
-            if (!item) {
-                console.log("Todo not found");
-            }
-
-            console.log(`id: ${item?.id}, task: ${item?.task}`);
-        }
-
-        if (action === "remove") {
-            const id = await text({
-                message: "Enter ID:",
-                validate: (v) => (v.trim() ? undefined : "Id is needed!"),
-            });
-            if (isCancel(id)) return;
-
-            const s = spinner();
-            s.start("Removing");
-            await todo.removeById(id);
             s.stop("Done");
         }
 
