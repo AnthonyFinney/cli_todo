@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <!-- CSP: load local scripts/styles only -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self'"
+        />
+        <meta
+            http-equiv="X-Content-Security-Policy"
+            content="default-src 'self'; script-src 'self'"
+        />
+        <title>Todo - Electron GUI</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <div class="app">
+            <header class="header">
+                <h1>Todo</h1>
+                <div class="meta">
+                    <span id="todo-count">0</span>
+                    <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                    <button id="clear-btn" class="btn btn-danger">Clear All</button>
+                </div>
+            </header>
+
+            <section class="add">
+                <form id="add-form" autocomplete="off">
+                    <input
+                        id="task-input"
+                        class="input"
+                        type="text"
+                        placeholder="Add a new task..."
+                        aria-label="Task"
+                        required
+                    />
+                    <button type="submit" class="btn">Add</button>
+                </form>
+            </section>
+
+            <section class="list">
+                <ul id="todo-list" class="todos" aria-live="polite"></ul>
+                <p id="empty-state" class="empty">No todos yet. Add one above!</p>
+            </section>
+        </div>
+
+        <script src="renderer.js"></script>
+    </body>
+    </html>

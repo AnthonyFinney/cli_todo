@@ -1,14 +1,20 @@
 {
   "name": "cli_todo",
   "module": "index.ts",
+  "main": "main.js",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "electron": "^38.4.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "private": true,
   "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "gui": "electron ."
+  },
   "dependencies": {
     "@clack/prompts": "^0.11.0"
   }

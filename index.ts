@@ -1,14 +1,14 @@
 import path from "node:path";
-import os from "node:os";
 import crypto from "node:crypto";
 import { select, text, isCancel, cancel, spinner, intro } from "@clack/prompts";
+import { spawn } from "node:child_process";
 import Todo from "./lib/Tobo";
 import type { TodoItem } from "./type";
 
 const main = async (): Promise<void> => {
     intro("Welcome to the cli todo!");
 
-    const dir = path.join(os.homedir(), ".todo");
+    const dir = path.join(process.cwd(), ".todo");
     const todo = new Todo(dir);
 
     let running = true;
@@ -18,6 +18,7 @@ const main = async (): Promise<void> => {
             options: [
                 { value: "list", label: "List all todo for show and remove" },
                 { value: "add", label: "Add new todo" },
+                { value: "gui", label: "Open GUI" },
                 { value: "quit", label: "quit" },
             ],
         });
@@ -91,6 +92,33 @@ const main = async (): Promise<void> => {
             s.start("Saving...");
             await todo.write(todoItem);
             s.stop("Done");
+        }
+
+        if (action === "gui") {
+            const s = spinner();
+            s.start("Opening GUI...");
+
+            try {
+                const mod = (await import("electron")) as unknown as {
+                    default: string;
+                };
+                const electronPath = mod.default;
+
+                const child = spawn(electronPath, ["."], {
+                    stdio: "inherit",
+                });
+
+                s.stop("GUI launched");
+
+                running = false;
+
+                await new Promise<void>((resolve) => {
+                    child.on("exit", () => resolve());
+                });
+            } catch (err) {
+                s.stop("Failed to open GUI");
+                console.log(err);
+            }
         }
 
         if (action === "quit") {
