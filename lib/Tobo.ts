@@ -1,6 +1,8 @@
 import path from "node:path";
-import { mkdir } from "node:fs/promises";
+import { mkdir, access, readFile, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
 import type { TodoItem } from "../type";
+import crypto from "node:crypto";
 
 class Todo {
     private filePath: string;
@@ -13,64 +15,120 @@ class Todo {
 
     public removeById = async (id: string): Promise<boolean> => {
         await this.readyStore;
-        const data = (await Bun.file(this.filePath).json()) as TodoItem[];
-
-        if (data.find((t) => t.id === id)) {
-            const updatedData = data.filter((t) => t.id !== id);
-            await Bun.write(
-                this.filePath,
-                JSON.stringify(updatedData, null, 2)
-            );
-            return true;
-        } else {
-            return false;
-        }
+        const raw = await readFile(this.filePath, "utf8");
+        const data = JSON.parse(raw) as TodoItem[];
+        const updatedData = data.filter((t) => t.id !== id);
+        await writeFile(
+            this.filePath,
+            JSON.stringify(updatedData, null, 2),
+            "utf8"
+        );
+        return data.length !== updatedData.length;
     };
 
     public removeAll = async (): Promise<void> => {
-        await Bun.write(this.filePath, "[]");
+        await writeFile(this.filePath, "[]", "utf8");
     };
 
-    public write = async (todo: TodoItem): Promise<void> => {
+    public write = async (task: string): Promise<string> => {
         await this.readyStore;
-        const data = (await Bun.file(this.filePath).json()) as TodoItem[];
-        const updatedData = [...data, todo];
-        await Bun.write(this.filePath, JSON.stringify(updatedData, null, 2));
+        const raw = await readFile(this.filePath, "utf8");
+        const data = JSON.parse(raw) as TodoItem[];
+
+        const id = String(crypto.randomInt(0, 100000)).padStart(5, "0");
+
+        const updatedData = [...data, { id, task }];
+        await writeFile(
+            this.filePath,
+            JSON.stringify(updatedData, null, 2),
+            "utf8"
+        );
+
+        return id;
     };
 
     public getAllTodo = async (): Promise<TodoItem[]> => {
         await this.readyStore;
         if (!(await this.checkfile())) return [];
-        const parsed = (await Bun.file(this.filePath).json()) as TodoItem[];
-        return parsed;
+        const raw = await readFile(this.filePath, "utf8");
+        const data = JSON.parse(raw) as TodoItem[];
+        const filtered = data.filter(
+            (it: any) =>
+                typeof it?.id === "string" &&
+                typeof it?.task === "string" &&
+                it.task.trim() !== ""
+        ) as TodoItem[];
+        if (filtered.length !== data.length) {
+            await writeFile(
+                this.filePath,
+                JSON.stringify(filtered, null, 2),
+                "utf8"
+            );
+        }
+        return filtered;
     };
 
     public getTodoById = async (id: string): Promise<TodoItem | undefined> => {
         await this.readyStore;
-        const parsed = (await Bun.file(this.filePath).json()) as TodoItem[];
-        const item = parsed.find((t) => t.id === id) as TodoItem;
+        const raw = await readFile(this.filePath, "utf8");
+        const data = JSON.parse(raw) as TodoItem[];
+        const item = data.find((t) => t.id === id) as TodoItem;
         return item;
     };
 
     public checkfile = async (): Promise<boolean> => {
-        const file = Bun.file(this.filePath);
-        if (!(await file.exists())) return false;
-        return true;
+        try {
+            await access(this.filePath, constants.F_OK);
+            return true;
+        } catch {
+            return false;
+        }
     };
 
     private store = async (dir: string): Promise<void> => {
         await mkdir(dir, { recursive: true });
-        const file = Bun.file(this.filePath);
-        if (!(await file.exists())) {
-            await Bun.write(this.filePath, "[]");
-        } else {
-            try {
-                const parsed = await file.json();
-                if (!Array.isArray(parsed))
-                    await Bun.write(this.filePath, "[]");
-            } catch {
-                await Bun.write(this.filePath, "[]");
+        try {
+            await access(this.filePath, constants.F_OK);
+        } catch {
+            await writeFile(this.filePath, "[]", "utf8");
+            return;
+        }
+        try {
+            const raw = await readFile(this.filePath, "utf8");
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                await writeFile(this.filePath, "[]", "utf8");
+            } else {
+                let changed = false;
+                const sanitized = (parsed as any[])
+                    .filter(
+                        (it) =>
+                            typeof it?.task === "string" &&
+                            it.task.trim() !== ""
+                    )
+                    .map((it) => {
+                        const id =
+                            typeof it?.id === "string"
+                                ? it.id
+                                : String(crypto.randomInt(0, 100000)).padStart(
+                                      5,
+                                      "0"
+                                  );
+                        if (typeof it?.id !== "string") changed = true;
+                        return { id, task: it.task } as TodoItem;
+                    });
+                if (sanitized.length !== (parsed as any[]).length)
+                    changed = true;
+                if (changed) {
+                    await writeFile(
+                        this.filePath,
+                        JSON.stringify(sanitized, null, 2),
+                        "utf8"
+                    );
+                }
             }
+        } catch {
+            await writeFile(this.filePath, "[]", "utf8");
         }
     };
 }

@@ -3,7 +3,6 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <!-- CSP: load local scripts/styles only -->
         <meta
             http-equiv="Content-Security-Policy"
             content="default-src 'self'; script-src 'self'"
@@ -21,8 +20,12 @@
                 <h1>Todo</h1>
                 <div class="meta">
                     <span id="todo-count">0</span>
-                    <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
-                    <button id="clear-btn" class="btn btn-danger">Clear All</button>
+                    <button id="refresh-btn" class="btn btn-secondary">
+                        Refresh
+                    </button>
+                    <button id="clear-btn" class="btn btn-danger">
+                        Clear All
+                    </button>
                 </div>
             </header>
 
@@ -42,10 +45,12 @@
 
             <section class="list">
                 <ul id="todo-list" class="todos" aria-live="polite"></ul>
-                <p id="empty-state" class="empty">No todos yet. Add one above!</p>
+                <p id="empty-state" class="empty">
+                    No todos yet. Add one above!
+                </p>
             </section>
         </div>
 
-        <script src="renderer.js"></script>
+        <script type="module" src="dist/renderer.js"></script>
     </body>
-    </html>
+</html>

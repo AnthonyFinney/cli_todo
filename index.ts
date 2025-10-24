@@ -81,34 +81,109 @@ const main = async (): Promise<void> => {
             });
             if (isCancel(task)) return;
 
-            const id = String(crypto.randomInt(0, 100000)).padStart(5, "0");
-
-            const todoItem: TodoItem = {
-                id,
-                task,
-            };
-
             const s = spinner();
             s.start("Saving...");
-            await todo.write(todoItem);
+            await todo.write(task);
             s.stop("Done");
         }
 
         if (action === "gui") {
             const s = spinner();
-            s.start("Opening GUI...");
+            s.start("Building GUI...");
 
             try {
+                const buildMain = spawn(
+                    process.platform === "win32" ? "bun.exe" : "bun",
+                    [
+                        "build",
+                        "main.ts",
+                        "--outdir",
+                        "dist",
+                        "--target=node",
+                        "--external",
+                        "electron",
+                        "--external",
+                        "node:*",
+                    ],
+                    { stdio: "inherit" }
+                );
+
+                await new Promise<void>((resolve, reject) => {
+                    buildMain.on("exit", (code) =>
+                        code === 0
+                            ? resolve()
+                            : reject(
+                                  new Error(
+                                      `bun build (main) exited with code ${code}`
+                                  )
+                              )
+                    );
+                    buildMain.on("error", reject);
+                });
+
+                const buildPreload = spawn(
+                    process.platform === "win32" ? "bun.exe" : "bun",
+                    [
+                        "build",
+                        "preload.ts",
+                        "--outfile",
+                        "dist/preload.cjs",
+                        "--target=node",
+                        "--format=cjs",
+                        "--external",
+                        "electron",
+                        "--external",
+                        "node:*",
+                    ],
+                    { stdio: "inherit" }
+                );
+
+                await new Promise<void>((resolve, reject) => {
+                    buildPreload.on("exit", (code) =>
+                        code === 0
+                            ? resolve()
+                            : reject(
+                                  new Error(
+                                      `bun build (preload) exited with code ${code}`
+                                  )
+                              )
+                    );
+                    buildPreload.on("error", reject);
+                });
+
+                const buildBrowser = spawn(
+                    process.platform === "win32" ? "bun.exe" : "bun",
+                    [
+                        "build",
+                        "renderer.js",
+                        "--outdir",
+                        "dist",
+                        "--target=browser",
+                    ],
+                    { stdio: "inherit" }
+                );
+
+                await new Promise<void>((resolve, reject) => {
+                    buildBrowser.on("exit", (code) =>
+                        code === 0
+                            ? resolve()
+                            : reject(
+                                  new Error(
+                                      `bun build (browser) exited with code ${code}`
+                                  )
+                              )
+                    );
+                    buildBrowser.on("error", reject);
+                });
+
+                s.stop("Built. Launching GUI...");
+
                 const mod = (await import("electron")) as unknown as {
                     default: string;
                 };
                 const electronPath = mod.default;
 
-                const child = spawn(electronPath, ["."], {
-                    stdio: "inherit",
-                });
-
-                s.stop("GUI launched");
+                const child = spawn(electronPath, ["."], { stdio: "inherit" });
 
                 running = false;
 
